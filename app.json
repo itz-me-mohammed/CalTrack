@@ -1,22 +1,32 @@
 {
   "expo": {
-    "name": "food_tracker",
-    "slug": "food_tracker",
+    "name": "CalTrack",
+    "slug": "caltrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "foodtracker",
+    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture photos of your meals for nutrition tracking.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save meal photos."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "package": "com.mohammed.caltrack",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -26,17 +36,20 @@
     "plugins": [
       "expo-router",
       [
-        "expo-splash-screen",
+        "expo-camera",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "cameraPermission": "Allow CalTrack to access your camera to capture meal photos."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f4ede06e-e43c-4fa6-b702-44adbd1044c6"
+      }
     }
   }
 }

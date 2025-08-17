@@ -1,50 +1,108 @@
-# Welcome to your Expo app 👋
+# CalTrack — Mobile Nutrition Tracker (Expo + Supabase)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Log meals, track calories/macros, and visualize daily progress. Built with Expo Router, TypeScript, and Supabase.
 
-## Get started
+## Features
+- Email auth (Supabase)
+- Log meals (name, calories, protein, carbs, fat)
+- Dashboard: Today’s Overview + recent meals
+- History list
+- Profile (display name)
+- Camera screen (dev build recommended on Android)
+- Themed UI components + haptic tab bar (iOS)
 
-1. Install dependencies
+## Tech
+- Expo (React Native, TypeScript, Expo Router)
+- Supabase (Auth + PostgREST)
+- Expo Camera, Haptics, Blur
 
-   ```bash
-   npm install
-   ```
+## Environment variables
+Create .env in the project root (don’t commit it). Expo public vars must start with EXPO_PUBLIC_.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_NUTRITIONIX_APP_ID=your_app_id
+EXPO_PUBLIC_NUTRITIONIX_API_KEY=your_api_key
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Tip: Copy template on Windows
+```
+copy .env.example .env
+```
 
-## Learn more
+## Getting started
+1) Install dependencies
+```
+npm install
+```
+2) Start the app
+```
+npx expo start
+```
+3) Run on device/emulator
+- Press a (Android), i (iOS), w (web).
 
-To learn more about developing your project with Expo, look at the following resources:
+## Camera on Android (Expo Go limits)
+For full media-library access, use a development build:
+```
+npm i -g @expo/eas-cli
+eas build:configure
+eas build --platform android --profile development
+# or iOS
+eas build --platform ios --profile development
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Supabase schema (required)
+Profiles table (with RLS) and meal_logs:
+```sql
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  display_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
-## Join the community
+CREATE TABLE IF NOT EXISTS meal_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  food_name TEXT NOT NULL,
+  calories INTEGER DEFAULT 0,
+  protein NUMERIC DEFAULT 0,
+  carbs NUMERIC DEFAULT 0,
+  fat NUMERIC DEFAULT 0,
+  logged_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE meal_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their meals" ON meal_logs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their meals" ON meal_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their meals" ON meal_logs FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their meals" ON meal_logs FOR DELETE USING (auth.uid() = user_id);
+```
 
-Join our community of developers creating universal apps.
+## Project structure
+```
+app/(tabs)/  Home, History, Profile, FoodCamera, tabs layout
+components/  UI components, HapticTab, icons
+constants/   Colors, Theme
+contexts/    AuthContext
+services/    supabase client, nutritionix API
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Troubleshooting
+- Tab icons invisible: adjust tabBarActiveTintColor/tabBarInactiveTintColor in app/(tabs)/_layout.tsx.
+- CameraView children warning: don’t render children inside CameraView; overlay via absolute positioning.
+- RLS errors: ensure queries filter profiles.id = auth.uid() and meal_logs.user_id = auth.uid().
+
+## Security
+- .env is ignored. If you committed it before:
+```
+git rm --cached .env
+git commit -m "chore: stop tracking .env"
+```
+Rotate any exposed keys in dashboards.

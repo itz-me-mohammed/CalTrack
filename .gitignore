@@ -30,8 +30,23 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Local env files
+.env
 .env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo/EAS build outputs
+dist/
+build/
+web-build/
+
+# OS/editor
+.DS_Store
+.vscode/
 
 # typescript
 *.tsbuildinfo
