@@ -1,195 +1,132 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TextStyle,
-} from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRouter, Link } from 'expo-router';
 import { Theme } from '@/constants/Theme';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  const router = useRouter();
 
-  const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
     setLoading(true);
     try {
-      await signIn(email, password);
-    } catch (error: any) {
-      console.log('Login error:', error);
+      const { error } = await signIn(email, password);
       
-      let errorMessage = error.message;
-      if (error.message.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-      }
-      
-      Alert.alert('Sign In Failed', errorMessage);
+      if (error) {
+        Alert.alert('Login Failed', error.message);
+      } 
+    } catch (error) {
+      Alert.alert('Login Failed', 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
       <LinearGradient
         colors={[Theme.colors.primary, Theme.colors.primaryDark]}
-        style={styles.background}
+        style={styles.header}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="nutrition" size={60} color="#fff" />
-            </View>
-            <Text style={styles.title}>CalTrack</Text>
-            <Text style={styles.subtitle}>Track your nutrition journey</Text>
-          </View>
-
-          <Card style={styles.formCard}>
-            <Text style={styles.formTitle}>Welcome Back</Text>
-            <Text style={styles.formSubtitle}>Sign in to continue your health journey</Text>
-
-            <View style={styles.form}>
-              <Input
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                leftIcon={<Ionicons name="mail-outline" size={20} color={Theme.colors.textMuted} />}
-              />
-              
-              <Input
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                leftIcon={<Ionicons name="lock-closed-outline" size={20} color={Theme.colors.textMuted} />}
-              />
-
-              <Button
-                title="Sign In"
-                onPress={handleSignIn}
-                loading={loading}
-                style={styles.signInButton}
-              />
-
-              <View style={styles.linkContainer}>
-                <Text style={styles.linkText}>Don't have an account? </Text>
-                <Link href="/auth/register" style={styles.link}>
-                  <Text style={styles.linkTextBlue}>Create one</Text>
-                </Link>
-              </View>
-            </View>
-          </Card>
-        </ScrollView>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Sign in to your account</Text>
       </LinearGradient>
-    </KeyboardAvoidingView>
+
+      <View style={styles.content}>
+        <Card style={styles.formCard}>
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+            secureTextEntry
+          />
+
+          <Button
+            title="Sign In"
+            onPress={handleLogin}
+            loading={loading}
+            style={styles.loginButton}
+          />
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Don't have an account?{' '}
+              <Link href="/auth/register" asChild>
+                <Text style={styles.footerLink}>Sign up</Text>
+              </Link>
+            </Text>
+          </View>
+        </Card>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  background: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Theme.spacing.lg,
+    backgroundColor: Theme.colors.background,
   },
   header: {
+    paddingTop: 80,
+    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.lg,
     alignItems: 'center',
-    marginBottom: Theme.spacing.xxl,
-  },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: Theme.borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Theme.spacing.lg,
   },
   title: {
     fontSize: Theme.typography.h1.fontSize,
     fontWeight: Theme.typography.h1.fontWeight,
-    lineHeight: Theme.typography.h1.lineHeight,
     color: '#fff',
-    marginBottom: Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
   },
   subtitle: {
     fontSize: Theme.typography.body.fontSize,
-    fontWeight: Theme.typography.body.fontWeight,
-    lineHeight: Theme.typography.body.lineHeight,
     color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
+  },
+  content: {
+    flex: 1,
+    marginTop: -Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.lg,
   },
   formCard: {
-    padding: Theme.spacing.xl,
+    padding: Theme.spacing.lg,
   },
-  formTitle: {
-    fontSize: Theme.typography.h2.fontSize,
-    fontWeight: Theme.typography.h2.fontWeight,
-    lineHeight: Theme.typography.h2.lineHeight,
-    color: Theme.colors.text,
-    textAlign: 'center',
-    marginBottom: Theme.spacing.sm,
-  },
-  formSubtitle: {
-    fontSize: Theme.typography.bodySmall.fontSize,
-    fontWeight: Theme.typography.bodySmall.fontWeight,
-    lineHeight: Theme.typography.bodySmall.lineHeight,
-    color: Theme.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: Theme.spacing.xl,
-  },
-  form: {
-    gap: Theme.spacing.md,
-  },
-  signInButton: {
+  loginButton: {
     marginTop: Theme.spacing.lg,
   },
-  linkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  footer: {
     marginTop: Theme.spacing.lg,
+    alignItems: 'center',
   },
-  linkText: {
+  footerText: {
     fontSize: Theme.typography.bodySmall.fontSize,
-    fontWeight: Theme.typography.bodySmall.fontWeight,
-    lineHeight: Theme.typography.bodySmall.lineHeight,
     color: Theme.colors.textSecondary,
   },
-  link: {
-    textDecorationLine: 'none',
-  },
-  linkTextBlue: {
-    fontSize: Theme.typography.bodySmall.fontSize,
-    fontWeight: '600' as TextStyle['fontWeight'],
-    lineHeight: Theme.typography.bodySmall.lineHeight,
+  footerLink: {
     color: Theme.colors.primary,
+    fontWeight: '600',
   },
 });

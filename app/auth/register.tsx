@@ -1,192 +1,149 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { Link, router } from 'expo-router';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, Link } from 'expo-router';
+import { Theme } from '@/constants/Theme';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
+  const router = useRouter();
 
-  const handleSignUp = async () => {
-    if (!email || !password || !displayName) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+  const handleRegister = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
 
     setLoading(true);
     try {
-      await signUp(email, password, displayName);
+      const { error } = await signUp(email, password, displayName || undefined);
       
-      // Show success message and redirect to login
-      Alert.alert(
-        'Account Created!',
-        'Your account has been created successfully. Please sign in to continue.',
-        [
-          {
-            text: 'Sign In',
-            onPress: () => router.replace('/auth/login'),
-          },
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert('Registration Error', error.message);
+      if (error) {
+        Alert.alert('Registration Failed', error.message);
+      } else {
+        Alert.alert('Success', 'Account created successfully!');
+        // Remove manual navigation - let the layout handle it
+      }
+    } catch (error) {
+      Alert.alert('Registration Failed', 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Join CalTrack</Text>
-        <Text style={styles.subtitle}>Create your nutrition tracking account</Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[Theme.colors.primary, Theme.colors.primaryDark]}
+        style={styles.header}
+      >
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Join CalTrack today</Text>
+      </LinearGradient>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Display Name"
+      <View style={styles.content}>
+        <Card style={styles.formCard}>
+          <Input
+            label="Display Name (Optional)"
             value={displayName}
             onChangeText={setDisplayName}
+            placeholder="Enter your display name"
             autoCapitalize="words"
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
+          <Input
+            label="Email"
             value={email}
             onChangeText={setEmail}
-            autoCapitalize="none"
+            placeholder="Enter your email"
             keyboardType="email-address"
+            autoCapitalize="none"
           />
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Password (min 6 characters)"
+
+          <Input
+            label="Password"
             value={password}
             onChangeText={setPassword}
+            placeholder="Enter your password (min 6 characters)"
             secureTextEntry
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
+          <Button
+            title="Create Account"
+            onPress={handleRegister}
+            loading={loading}
+            style={styles.registerButton}
           />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSignUp}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Creating Account...' : 'Create Account'}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Already have an account?{' '}
+              <Link href="/auth/login" asChild>
+                <Text style={styles.footerLink}>Sign in</Text>
+              </Link>
             </Text>
-          </TouchableOpacity>
-
-          <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Already have an account? </Text>
-            <Link href="/auth/login" style={styles.link}>
-              <Text style={styles.linkTextBlue}>Sign in</Text>
-            </Link>
           </View>
-        </View>
+        </Card>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Theme.colors.background,
+  },
+  header: {
+    paddingTop: 80,
+    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.lg,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: Theme.typography.h1.fontSize,
+    fontWeight: Theme.typography.h1.fontWeight,
+    color: '#fff',
+    marginBottom: Theme.spacing.xs,
+  },
+  subtitle: {
+    fontSize: Theme.typography.body.fontSize,
+    color: 'rgba(255,255,255,0.8)',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+    marginTop: -Theme.spacing.lg,
+    paddingHorizontal: Theme.spacing.lg,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
+  formCard: {
+    padding: Theme.spacing.lg,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 40,
+  registerButton: {
+    marginTop: Theme.spacing.lg,
   },
-  form: {
-    gap: 16,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#2e86de',
-    padding: 16,
-    borderRadius: 8,
+  footer: {
+    marginTop: Theme.spacing.lg,
     alignItems: 'center',
-    marginTop: 8,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  footerText: {
+    fontSize: Theme.typography.bodySmall.fontSize,
+    color: Theme.colors.textSecondary,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  linkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  linkText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  link: {
-    textDecorationLine: 'none',
-  },
-  linkTextBlue: {
-    color: '#2e86de',
-    fontSize: 16,
+  footerLink: {
+    color: Theme.colors.primary,
     fontWeight: '600',
   },
 });

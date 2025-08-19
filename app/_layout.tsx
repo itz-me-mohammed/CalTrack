@@ -1,66 +1,58 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { router } from 'expo-router';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
+SplashScreen.preventAutoHideAsync();
+
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return; // Don't do anything while loading
+
+    const inAuthGroup = segments[0] === 'auth';
+
+    if (!user && !inAuthGroup) {
+      // User is not signed in and not in auth group, redirect to login
+      router.replace('/auth/login');
+    } else if (user && inAuthGroup) {
+      // User is signed in but still in auth group, redirect to main app
+      router.replace('/(tabs)');
+    }
+  }, [user, loading, segments]);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth/login" />
+      <Stack.Screen name="auth/register" />
+      <Stack.Screen name="+not-found" />
+    </Stack>
   );
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  if (!loaded) {
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
+
+  if (!loaded && !error) {
     return null;
   }
 
   return (
     <AuthProvider>
-      <AuthGuard>
-        <RootLayoutNav />
-      </AuthGuard>
+      <RootLayoutNav />
     </AuthProvider>
   );
-}
-
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        // User is not authenticated, redirect to login
-        router.replace('/auth/login');
-      } else {
-        // User is authenticated, redirect to main app
-        router.replace('/(tabs)');
-      }
-    }
-  }, [user, loading]);
-
-  if (loading) {
-    return null; // Or a loading screen
-  }
-
-  return <>{children}</>;
 }
